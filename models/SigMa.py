@@ -34,13 +34,11 @@ class SigMa:
 
         count = 0
         iteration = 0
-        prev_score = self.hmm.log_probability(hmm_seqs)
+        prev_score = -np.inf
         b = np.zeros((2, 2))
         rho = np.zeros(2)
         transitions = np.zeros((self.num_states, self.num_states))
         hmm_start = np.zeros(self.num_states)
-
-        import time
 
         for iteration in range(int(max_iterations)):
             # expectation step
@@ -182,7 +180,7 @@ class HMMForSigma(HMM):
 
         # fixing transitions
         # hmm-hmm transitions
-        self.transitions[:-1, :-1] = random_hmm.transitions * (1 - random_b[0])
+        self.transitions[:-1, :-1] = random_hmm.transitions * random_b[0]
         # mmm-hmm transitions
         self.transitions[-1, :-1] = random_hmm.start_prob * random_b[1]
         # hmm-mmm transitions

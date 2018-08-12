@@ -5,7 +5,7 @@ from scipy.misc import logsumexp
 
 
 class HMM:
-    def __init__(self, num_states, num_emissions, laplace=0, random_state=None):
+    def __init__(self, num_states, num_emissions, laplace=0, random_state=1000):
         self.num_states = num_states
         self.num_emissions = num_emissions
         self.laplace = laplace
@@ -51,7 +51,7 @@ class HMM:
         count = 0
         iteration = 0
         self.update_hmm()
-        prev_score = self.log_probability(data)
+        prev_score = -np.inf
 
         data = self.pre_train(data, stop_threshold, max_iterations)
 
@@ -74,7 +74,6 @@ class HMM:
             score = self.log_probability(data)
             # print(score)
             # scores.append(score)
-
             count = count + 1 if score - prev_score < stop_threshold else 0
             prev_score = score
 
@@ -90,14 +89,80 @@ class HMM:
     def log_probability(self, seqs):
         score = 0
         for seq in seqs:
-            forward_matrix = self.hmm.forward(seq)
-            score += logsumexp(forward_matrix[-1])
+            score += self.hmm.log_probability(seq)
         return score
 
     def expectation_projection_step(self, expected_transitions, expected_emissions, expected_start_count):
         return expected_transitions, expected_emissions, expected_start_count
 
     # need to learn how to compute it better! (using only log fwa bwa)
+    def expectation_step2(self, seqs, no_emissions=False):
+        num_states = self.num_states
+        num_emissions = self.num_emissions
+        expected_transitions = np.zeros((num_states, num_states))
+        expected_emissions = np.zeros((num_states, num_emissions))
+        expected_start_count = np.zeros(num_states)
+        if self.laplace:
+            expected_transitions += self.laplace
+            expected_emissions += self.laplace
+            expected_start_count += self.laplace
+        expected_emissions = np.log(expected_emissions)
+        log_emissions = np.log(self.emissions.T)
+        log_transitions = np.log(self.transitions)
+        log_start_prob = np.log(self.start_prob)
+        score = 0
+
+        tmp_calc = np.zeros((num_states, num_states))
+        tmp_calc2 = np.zeros((num_states, num_states))
+        import time
+        for seq in seqs:
+            tic = time.clock()
+            a2, b2 = self.hmm.forward_backward(seq)
+            print(time.clock() - tic)
+
+            tic = time.clock()
+            fwa, bwa = self.log_fwa_bwa(seq)
+            print(time.clock() - tic)
+            seq_score = logsumexp(fwa[-1])
+            score += seq_score
+            print(time.clock() - tic)
+
+            # emissions estimation
+            b = fwa + bwa
+            b -= seq_score
+            print(time.clock() - tic)
+
+            # transitions estimation
+            # tic = time.clock()
+            temp = np.zeros((len(seq) - 1, num_states, num_states))
+            for l in range(len(seq) - 1):
+                np.add.outer(fwa[l], bwa[l + 1] + log_emissions[seq[l + 1]], out=temp[l])
+                temp[l] += log_transitions
+            print(time.clock() - tic)
+
+            a = logsumexp(temp, 0)
+            a -= seq_score
+            a = np.exp(a)
+            print(time.clock() - tic)
+
+            # start estimation
+            expected_start_count += np.exp(log_start_prob + log_emissions[seq[0]] + bwa[1] - seq_score)
+            print(time.clock() - tic)
+            if len(seq) == 1:
+                if not no_emissions:
+                    expected_emissions[:, seq[0]] = np.logaddexp(expected_emissions[:, seq[0]], b[0])
+            else:
+                expected_transitions += a[:num_states, :num_states]
+                if not no_emissions:
+                    for i,  l in enumerate(seq):
+                        expected_emissions[:, l] = np.logaddexp(expected_emissions[:, l], b[i])
+        if no_emissions:
+            expected_emissions = self.emissions
+        else:
+            expected_emissions = np.exp(expected_emissions)
+
+        return expected_transitions, expected_emissions, expected_start_count, score
+
     def expectation_step(self, seqs, no_emissions=False):
         num_states = self.num_states
         num_emissions = self.num_emissions
@@ -109,24 +174,7 @@ class HMM:
             expected_emissions += self.laplace
             expected_start_count += self.laplace
         expected_emissions = np.log(expected_emissions)
-        # log_emissions = np.log(self.emissions)
-        # log_transitions = np.log(self.transitions)
         for seq in seqs:
-            # print(np.max(np.absolute(expected_emissions - np.exp(expected_emissions_2))))
-            # fwa, bwa = self.log_fwa_bwa(seq)
-            # b = fwa + bwa
-            # b -= logsumexp(b[0])
-            # temp = np.zeros((num_states, num_states, len(seq)))
-            # for l in range(len(seq) - 1):
-            #     normalizer = 0
-            #     for i in range(num_states):
-            #         for j in range(num_states):
-            #             temp[i, j, l] =
-            #               fwa[l, i] + log_transitions[i, j] + log_emissions[j, seq[l + 1]] + bwa[l + 1, j]
-            #             normalizer += normalizer + np.log1p(np.exp(temp[i, j, l] - normalizer))
-            #     for i in range(num_states):
-            #         for j in range(num_states):
-            #             temp[i, j, l] = temp[i, j, l] - normalizer
             if len(seq) == 1:
                 a, b = self.hmm.forward_backward(seq)
                 expected_start_count += a[num_states, :num_states]

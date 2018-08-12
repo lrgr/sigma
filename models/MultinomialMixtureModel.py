@@ -4,7 +4,7 @@ from scipy.misc import logsumexp
 
 
 class MultinomialMixtureModel:
-    def __init__(self, num_states, num_emissions, emissions=None, weights=None, random_state=None):
+    def __init__(self, num_states, num_emissions, emissions=None, weights=None, random_state=1000):
         self.num_states = num_states
         self.num_emissions = num_emissions
         if random_state is None:

@@ -71,9 +71,9 @@ def leave_one_out(sample_seqs_tuple, model_name, threshold, epsilon=1e-3):
 
         model = get_model(model_name)
 
-        tic = time.time()
+        tic = time.clock()
         num_iterations = model.fit(train_data, stop_threshold=epsilon, max_iterations=100)
-        train_time = time.time() - tic
+        train_time = time.clock() - tic
 
         score = model.log_probability(test_data)
 
