@@ -95,7 +95,6 @@ class HMM:
     def expectation_projection_step(self, expected_transitions, expected_emissions, expected_start_count):
         return expected_transitions, expected_emissions, expected_start_count
 
-    # need to learn how to compute it better! (using only log fwa bwa)
     def expectation_step2(self, seqs, no_emissions=False):
         num_states = self.num_states
         num_emissions = self.num_emissions
