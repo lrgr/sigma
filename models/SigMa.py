@@ -35,14 +35,28 @@ class SigMa:
         count = 0
         iteration = 0
         prev_score = -np.inf
-        b = np.zeros((2, 2))
-        rho = np.zeros(2)
-        transitions = np.zeros((self.num_states, self.num_states))
-        hmm_start = np.zeros(self.num_states)
+        b = np.empty((2, 2))
+        rho = np.empty(2)
+        transitions = np.empty((self.num_states, self.num_states))
+        hmm_start = np.empty(self.num_states)
+
+        unique_seqs = []
+        counts = []
+        for seq1 in hmm_seqs:
+            flag = True
+            for i, seq2 in enumerate(unique_seqs):
+                if len(seq1) == len(seq2) and seq1[0] == seq2[0] and seq1[-1] == seq2[-1]:
+                    if np.all(seq1 == seq2):
+                        flag = False
+                        counts[i] += 1
+                        break
+            if flag:
+                unique_seqs.append(seq1)
+                counts.append(1)
 
         for iteration in range(int(max_iterations)):
             # expectation step
-            expected_transitions, _, expected_start_count = self.hmm.expectation_step(hmm_seqs, no_emissions=True)
+            expected_transitions, expected_emissions, expected_start_count = self.hmm.expectation_step(unique_seqs, counts, no_emissions=False)
 
             # expectation projection
             # start
@@ -88,7 +102,7 @@ class SigMa:
 
             self.hmm.update_hmm()
 
-            score_hmm = self.hmm.log_probability(hmm_seqs)
+            score_hmm = self.hmm.log_probability(unique_seqs, counts)
             score = score_hmm
             count = count + 1 if score - prev_score < stop_threshold else 0
             prev_score = score

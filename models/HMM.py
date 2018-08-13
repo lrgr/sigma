@@ -5,7 +5,7 @@ from scipy.misc import logsumexp
 
 
 class HMM:
-    def __init__(self, num_states, num_emissions, laplace=0, random_state=1000):
+    def __init__(self, num_states, num_emissions, laplace=0, random_state=None):
         self.num_states = num_states
         self.num_emissions = num_emissions
         self.laplace = laplace
@@ -86,14 +86,52 @@ class HMM:
 
         return iteration
 
-    def log_probability(self, seqs):
+    def log_probability(self, seqs, weights=None):
         score = 0
-        for seq in seqs:
-            score += self.hmm.log_probability(seq)
+        if weights is None:
+            for seq in seqs:
+                score += self.hmm.log_probability(seq)
+        else:
+            for i, seq in enumerate(seqs):
+                score += weights[i] * self.hmm.log_probability(seq)
         return score
 
     def expectation_projection_step(self, expected_transitions, expected_emissions, expected_start_count):
         return expected_transitions, expected_emissions, expected_start_count
+
+    def expectation_step(self, seqs, weights=None, no_emissions=False):
+        num_states = self.num_states
+        num_emissions = self.num_emissions
+        expected_transitions = np.zeros((num_states, num_states))
+        expected_emissions = np.zeros((num_emissions, num_states))
+        expected_start_count = np.zeros(num_states)
+        if self.laplace:
+            expected_transitions += self.laplace
+            expected_emissions += self.laplace
+            expected_start_count += self.laplace
+        expected_emissions = np.log(expected_emissions)
+        for i, seq in enumerate(seqs):
+            a, b = self.hmm.forward_backward(seq)
+            if weights is not None:
+                a *= weights[i]
+            expected_start_count += a[num_states, :num_states]
+            if len(seq) == 1:
+                if not no_emissions:
+                    if weights is not None:
+                        b += np.log(weights[i])
+                    expected_emissions[seq[0]] = np.logaddexp(expected_emissions[seq[0]], b[0])
+            else:
+                expected_transitions += a[:num_states, :num_states]
+                if not no_emissions:
+                    if weights is not None:
+                        b += np.log(weights[i])
+                    for i,  l in enumerate(seq):
+                        expected_emissions[l] = np.logaddexp(expected_emissions[l], b[i])
+        if no_emissions:
+            expected_emissions = self.emissions
+        else:
+            expected_emissions = np.exp(expected_emissions)
+        return expected_transitions, expected_emissions.T, expected_start_count
 
     def expectation_step2(self, seqs, no_emissions=False):
         num_states = self.num_states
@@ -111,8 +149,6 @@ class HMM:
         log_start_prob = np.log(self.start_prob)
         score = 0
 
-        tmp_calc = np.zeros((num_states, num_states))
-        tmp_calc2 = np.zeros((num_states, num_states))
         import time
         for seq in seqs:
             tic = time.clock()
@@ -161,36 +197,6 @@ class HMM:
             expected_emissions = np.exp(expected_emissions)
 
         return expected_transitions, expected_emissions, expected_start_count, score
-
-    def expectation_step(self, seqs, no_emissions=False):
-        num_states = self.num_states
-        num_emissions = self.num_emissions
-        expected_transitions = np.zeros((num_states, num_states))
-        expected_emissions = np.zeros((num_states, num_emissions))
-        expected_start_count = np.zeros(num_states)
-        if self.laplace:
-            expected_transitions += self.laplace
-            expected_emissions += self.laplace
-            expected_start_count += self.laplace
-        expected_emissions = np.log(expected_emissions)
-        for seq in seqs:
-            if len(seq) == 1:
-                a, b = self.hmm.forward_backward(seq)
-                expected_start_count += a[num_states, :num_states]
-                if not no_emissions:
-                    expected_emissions[:, seq[0]] = np.logaddexp(expected_emissions[:, seq[0]], b[0])
-            else:
-                a, b = self.hmm.forward_backward(seq)
-                expected_transitions += a[:num_states, :num_states]
-                expected_start_count += a[num_states, :num_states]
-                if not no_emissions:
-                    for i,  l in enumerate(seq):
-                        expected_emissions[:, l] = np.logaddexp(expected_emissions[:, l], b[i])
-        if no_emissions:
-            expected_emissions = self.emissions
-        else:
-            expected_emissions = np.exp(expected_emissions)
-        return expected_transitions, expected_emissions, expected_start_count
 
     def maximization_step(self, expected_transitions, expected_emissions, expected_start_prob):
         self.transitions = (expected_transitions.T / np.sum(expected_transitions, axis=1)).T
