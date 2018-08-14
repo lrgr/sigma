@@ -7,7 +7,7 @@ import time
 from models.SigMa import SigMa
 
 
-def chromosomes_experiment(model, sample_indices, threshold, out_dir='results\leave_one_out'):
+def chromosomes_experiment(model, sample_indices, threshold, max_iterations, epsilon, random_state, out_dir):
 
     if threshold <= 0:
         threshold = 0
@@ -29,11 +29,11 @@ def chromosomes_experiment(model, sample_indices, threshold, out_dir='results\le
         out_file = out_dir_for_file + "/" + sample
         if os.path.isfile(out_file + '.json'):
             continue
-        dict_to_save = leave_one_out(experiment_tuple, model, threshold)
+        dict_to_save = leave_one_out(experiment_tuple, model, threshold, max_iterations, epsilon, random_state)
         to_json(out_file, dict_to_save)
 
 
-def leave_one_out(sample_seqs_tuple, model_name, threshold, epsilon=1e-3):
+def leave_one_out(sample_seqs_tuple, model_name, threshold, max_iterations, epsilon, random_state):
     seqs = sample_seqs_tuple[1]
     n_seq = len(seqs)
 
@@ -69,10 +69,10 @@ def leave_one_out(sample_seqs_tuple, model_name, threshold, epsilon=1e-3):
         for seq in test_data:
             test_length += len(seq)
 
-        model = get_model(model_name)
+        model = get_model(model_name, random_state)
 
         tic = time.clock()
-        num_iterations = model.fit(train_data, stop_threshold=epsilon, max_iterations=100)
+        num_iterations = model.fit(train_data, stop_threshold=epsilon, max_iterations=max_iterations)
         train_time = time.clock() - tic
 
         score = model.log_probability(test_data)
@@ -95,15 +95,15 @@ def leave_one_out(sample_seqs_tuple, model_name, threshold, epsilon=1e-3):
     return output_dict
 
 
-def get_model(model_name):
+def get_model(model_name, random_state=None):
 
     if model_name == 'sigma':
         emissions = np.load('data/emissions_for_breast_cancer.npy')
-        model = SigMa(emissions)
+        model = SigMa(emissions, random_state)
 
     elif model_name == 'mmm':
         emissions = np.load('data/emissions_for_breast_cancer.npy')
-        model = MMMFrozenEmissions(emissions)
+        model = MMMFrozenEmissions(emissions, random_state=random_state)
 
     return model
 
@@ -114,8 +114,8 @@ def get_data():
     pass
 
 
-def main(model, batch, batch_size, threshold):
+def main(model, batch, batch_size, threshold, max_iterations=100, epsilon=1e-2, random_state=5733, out_dir='results\leave_one_out'):
     start = batch * batch_size
     finish = (batch + 1) * batch_size
     sample_indices = range(start, finish)
-    chromosomes_experiment(model, sample_indices, threshold)
+    chromosomes_experiment(model, sample_indices, threshold, max_iterations, epsilon, random_state, out_dir)

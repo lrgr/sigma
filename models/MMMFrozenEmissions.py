@@ -6,11 +6,9 @@ class MMMFrozenEmissions(MultinomialMixtureModel):
     """
     MMM with frozen emissions
     """
-    def __init__(self, emissions):
+    def __init__(self, emissions, random_state=None):
         num_states, num_emissions = emissions.shape
-        self.frozen_emissions = np.log(emissions)
-        super().__init__(num_states, num_emissions)
-        self.projection_step()
+        super().__init__(num_states, num_emissions, emissions=emissions, random_state=random_state)
 
-    def projection_step(self):
-        self.emissions = self.frozen_emissions
+    def maximization_step(self, expected_weights, expected_emissions):
+        self.weights = expected_weights

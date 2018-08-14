@@ -6,7 +6,7 @@ import numpy as np
 from models.SigMa import SigMa
 
 
-def all_viterbi(model, sample_indices, threshold, out_dir='results/viterbi'):
+def all_viterbi(model, sample_indices, threshold, max_iterations, epsilon, random_state, out_dir):
 
     if threshold <= 0:
         threshold = 0
@@ -35,15 +35,15 @@ def all_viterbi(model, sample_indices, threshold, out_dir='results/viterbi'):
         else:
             seqs = curr_seqs
 
-        dict_to_save = create_viterbi(model, seqs)
+        dict_to_save = create_viterbi(model, seqs, max_iterations, epsilon, random_state)
         out_file = out_dir_for_file + "/" + sample
         to_json(out_file, dict_to_save)
 
 
-def create_viterbi(model_name, seqs, epsilon=1e-3):
-    model = get_model(model_name)
+def create_viterbi(model_name, seqs, max_iterations, epsilon, random_state):
+    model = get_model(model_name, random_state)
 
-    model.fit(seqs, stop_threshold=epsilon, max_iterations=500)
+    model.fit(seqs, stop_threshold=epsilon, max_iterations=max_iterations)
     if model_name == 'sigma':
         cloud_indicator, viterbi = model.predict(seqs)
         dict_to_save = {'viterbi': viterbi, 'cloud_indicator': cloud_indicator}
@@ -55,15 +55,15 @@ def create_viterbi(model_name, seqs, epsilon=1e-3):
     return dict_to_save
 
 
-def get_model(model_name):
+def get_model(model_name, random_state=None):
 
     if model_name == 'sigma':
         emissions = np.load('data/emissions_for_breast_cancer.npy')
-        model = SigMa(emissions)
+        model = SigMa(emissions, random_state)
 
     elif model_name == 'mmm':
         emissions = np.load('data/emissions_for_breast_cancer.npy')
-        model = MMMFrozenEmissions(emissions)
+        model = MMMFrozenEmissions(emissions, random_state=random_state)
 
     return model
 
@@ -74,8 +74,8 @@ def get_data():
     pass
 
 
-def main(model, batch, batch_size, threshold):
+def main(model, batch, batch_size, threshold, max_iterations=500, epsilon=1e-3, random_state=5733, out_dir='results/viterbi'):
     start = batch * batch_size
     finish = (batch + 1) * batch_size
     sample_indices = range(start, finish)
-    all_viterbi(model, sample_indices, threshold)
+    all_viterbi(model, sample_indices, threshold, max_iterations, epsilon, random_state, out_dir)
