@@ -32,6 +32,9 @@ class SigMa:
             self.mmm.fit(gmm_seqs, max_iterations=max_iterations, stop_threshold=stop_threshold)
             self.init_hmm()
 
+        if len(hmm_seqs) == 0:
+            return
+
         count = 0
         iteration = 0
         prev_score = -np.inf
