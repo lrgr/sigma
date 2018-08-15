@@ -2,7 +2,7 @@ import os
 
 from models.MMMFrozenEmissions import MMMFrozenEmissions
 from models.SigMa import SigMa
-from utils.data_utils import get_split_sequences_by_threshold, to_json
+from utils.data_utils import get_split_sequences_by_threshold, to_json, load_json
 import numpy as np
 import time
 
@@ -17,7 +17,7 @@ def main(command, model, threshold, batch, batch_size, max_iterations, epsilon, 
     :param threshold: Define maximal distance (in bp) in clouds. Use 0 to not split (i.e use whole chromosomes)
     :param max_iterations: Maximal number of iterations for training the model
     :param epsilon: Minimum improvement in every iteration of the model, if improvement is lower stop training
-    :param random_state: Random state to initialize the models
+    :param random_state: Random state to initialize the models. None will use random_state by using the clock
     :param out_dir: where to save all the files
     :return:
     """
@@ -27,14 +27,14 @@ def main(command, model, threshold, batch, batch_size, max_iterations, epsilon, 
     data_file = 'data/nik-zainal2016-wgs-brca-mutations-for-hmm.json'
 
     if command == 'loo':
-        out_dir += '/leave_one_out'
+        out_dir = os.path.join(out_dir, 'leave_one_out')
         func = leave_one_out
         if max_iterations is None:
             max_iterations = 100
         if epsilon is None:
             epsilon = 5e-2
     elif command == 'viterbi':
-        out_dir += '/viterbi'
+        out_dir = os.path.join(out_dir, 'viterbi')
         func = get_viterbi
         if max_iterations is None:
             max_iterations = 500
@@ -149,13 +149,30 @@ def get_trained_model(model_name, train_data, epsilon, max_iterations, random_st
 
 
 def get_model(model_name, random_state=None):
-
+    emissions = np.load('data/emissions_for_breast_cancer.npy')
     if model_name == 'sigma':
-        emissions = np.load('data/emissions_for_breast_cancer.npy')
         model = SigMa(emissions, random_state)
 
     elif model_name == 'mmm':
-        emissions = np.load('data/emissions_for_breast_cancer.npy')
         model = MMMFrozenEmissions(emissions, random_state=random_state)
 
     return model
+
+
+def analyze_leave_one_out(result_dir='results'):
+    loo_dir = os.path.join(result_dir, 'leave_one_out')
+    dirs = os.listdir(loo_dir)
+    files_per_dir = [os.listdir(os.path.join(loo_dir, d)) for d in dirs]
+    files_intersection = files_per_dir[0]
+    for i in range(1, len(dirs)):
+        files_intersection = np.intersect1d(files_intersection, files_per_dir[i])
+
+    scores = []
+    for d in dirs:
+        score = 0
+        for f in files_intersection:
+            score += load_json(os.path.join(loo_dir, d, f))['results']['score']
+        scores.append(score)
+
+    for d, s in zip(dirs, scores):
+        print('{}: {}'.format(d, s))
