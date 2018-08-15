@@ -1,6 +1,8 @@
-from utils.execute_command import main
-import argparse, sys
+import argparse
+import sys
 import time
+
+from utils.execute_command import main
 
 
 def get_parser():
