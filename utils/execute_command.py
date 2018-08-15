@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 
-def main(command, model, batch, batch_size, threshold, max_iterations=None, epsilon=None, random_state=5733, out_dir='results'):
+def main(command, model, threshold, batch, batch_size, max_iterations, epsilon, random_state=5733, out_dir='results'):
     """
     The main function to reproducing the paper's results
     :param command: 'loo' for leave one out. 'viterbi' for viterbi
@@ -32,7 +32,7 @@ def main(command, model, batch, batch_size, threshold, max_iterations=None, epsi
         if max_iterations is None:
             max_iterations = 100
         if epsilon is None:
-            epsilon = 1e-2
+            epsilon = 5e-2
     elif command == 'viterbi':
         out_dir += '/viterbi'
         func = get_viterbi
