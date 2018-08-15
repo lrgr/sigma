@@ -27,7 +27,8 @@ class SigMa:
 
         if len(gmm_seqs) != 0:
             self.mmm.fit(gmm_seqs, max_iterations=max_iterations, stop_threshold=stop_threshold)
-            self.init_hmm()
+            self.hmm.emissions[-1] = self.mmm.get_emissions_vector()
+            self.hmm.update_hmm()
 
         if len(hmm_seqs) == 0:
             return
