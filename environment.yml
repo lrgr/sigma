@@ -1,0 +1,17 @@
+name: 'sigma-env'
+channels:
+  - defaults
+  - bioconda
+dependencies:
+  - numpy
+  - scikit-learn
+  - scipy
+  - matplotlib
+  - pandas
+  - seaborn
+  - snakemake
+  - tqdm
+  - pip
+  - pip:
+    - pomegranate
+    

@@ -2,7 +2,26 @@ import numpy as np
 from pomegranate import *
 import json
 
+################################################################################
+# LOGGING
+################################################################################
+import logging
 
+# Logging format
+FORMAT = '%(asctime)s %(levelname)-10s: %(message)s'
+logging.basicConfig(format=FORMAT)
+
+def get_logger(verbosity=logging.INFO):
+    '''
+    Returns logger object
+    '''
+    logger = logging.getLogger(__name__)
+    logger.setLevel(verbosity)
+    return logger
+
+################################################################################
+# UTILS
+################################################################################
 def sample_and_noise(model, noise_dist, n_seqs, seqs_len):
     noise_change_dist = DiscreteDistribution(dict(zip(range(96), [1.0 / 96] * 96)))
     seqs = []
