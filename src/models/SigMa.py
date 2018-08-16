@@ -36,10 +36,10 @@ class SigMa:
         count = 0
         iteration = 0
         prev_score = -np.inf
-        b = np.empty((2, 2))
-        rho = np.empty(2)
-        transitions = np.empty((self.num_states, self.num_states))
-        hmm_start = np.empty(self.num_states)
+        b = np.zeros((2, 2))
+        rho = np.zeros(2)
+        transitions = np.zeros((self.num_states, self.num_states))
+        hmm_start = np.zeros(self.num_states)
 
         unique_seqs = []
         counts = []
@@ -57,7 +57,7 @@ class SigMa:
 
         for iteration in range(int(max_iterations)):
             # expectation step
-            expected_transitions, expected_emissions, expected_start_count = self.hmm.expectation_step(unique_seqs, counts, no_emissions=False)
+            expected_transitions, expected_emissions, expected_start_count = self.hmm.expectation_step(unique_seqs, counts, no_emissions=True)
 
             # expectation projection
             # start
