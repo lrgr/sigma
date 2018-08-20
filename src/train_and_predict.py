@@ -4,7 +4,7 @@
 # SETUP
 ################################################################################
 # Load required modules
-import sys, os, numpy as np, json, logging
+import sys, os, numpy as np, json, logging, pandas as pd
 from time import time
 from tqdm import tqdm
 
@@ -13,7 +13,6 @@ from constants import MODEL_NAMES, SIGMA_NAME, MMM_NAME
 from models.MMMFrozenEmissions import MMMFrozenEmissions
 from models.SigMa import SigMa
 from data_utils import get_split_sequences_by_threshold, to_json, get_logger
-
 
 ################################################################################
 # HELPERS
@@ -126,6 +125,8 @@ def get_parser():
     parser.add_argument('-tol', '--tolerance', type=float, required=False, default=1e-3)
     parser.add_argument('-rs', '--random_state', type=int, required=False, default=5733)
     parser.add_argument('-od', '--output_directory', type=str, required=True)
+    parser.add_argument('-as', '--active_signatures', type=int, required=False,
+                        default=[], nargs='*', help='1-based indices of signatures')
     parser.add_argument('--cross-validation-mode', action='store_true', default=False,
                         required=False)
     parser.add_argument('-v', '--verbosity', type=int, required=False, default=logging.INFO)
@@ -152,7 +153,10 @@ def main(args):
     
     # Get the list of samples we're going to run on
     with open(args.mutations_file, 'r') as IN:
-        samples = json.load(IN).get('samples')
+        obj = json.load(IN)
+        samples = obj.get('samples')
+        categories = obj.get('categories')
+        
     if len(args.sample_names) == 0:
         sample_indices = range(len(samples))
     else:
@@ -161,9 +165,15 @@ def main(args):
     logger.info('- Loading data for %s samples' % len(sample_indices))
 
     # Load the emissions matrix
-    emissions = np.load(args.signatures_file)
+    sig_df = pd.read_csv(args.signatures_file, sep='\t', index_col=0)
+    emissions = sig_df.values
+    if len(args.active_signatures) > 0:
+        emissions = emissions[np.array(args.active_signatures)-1]
+
+    assert( list(sig_df.columns) == categories )
+
     logger.info('- Loaded %s x %s emissions matrix' % emissions.shape)
-    # if threshold <= 0:
+    # if threshold <= 0:         
     #     out_dir_for_file = os.path.join(out_dir, model)
     #     threshold = 1e99
     # else:

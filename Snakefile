@@ -8,12 +8,12 @@ from constants import *
 
 # Configuration
 config['signatures_file'] = config.get('signatures_file',
-                                       'data/signatures/emissions_for_breast_cancer.npy') # default:
+                                       'data/signatures/cosmic-signatures.tsv') # default: COSMIC
 config['active_signatures'] = config.get('active_signatures',
                                          [1,2,3,5,6,8,13,17,18,20,26,30])
 config['run_name'] = config.get('run_name', 'ICGC-R22-BRCA') # default:
 config['mutations_file'] = config.get('mutations_file',
-                                      'data/mutations/nik-zainal2016-wgs-brca-mutations-for-hmm.json')
+                                      'data/mutations/ICGC-BRCA-EU.RELEASE_22.SBS.renamed.sigma.json')
 config['models'] = config.get('models', MODEL_NAMES)
 config['output_dir'] = OUTPUT_DIR = config.get('output_dir', join('output', config.get('run_name')))
 
@@ -31,6 +31,11 @@ config['max_iter'] = config.get('max_iter', 100)
 config['cloud_thresholds'] = config.get('cloud_thresholds', list(range(1000,10001,1000)))
 config['chosen_cloud_threshold'] = config.get('chosen_cloud_threshold', 2000)
 config['tolerance'] = config.get('tolerance', 1e-3)
+
+if len(config.get('active_signatures')) == 0:
+    ACTIVE_SIGNATURES_PARAM = ''
+else:
+    ACTIVE_SIGNATURES_PARAM = '-as %s' % ' '.join(map(str, config.get('active_signatures')))
 
 # Directories
 DATA_DIR = 'data'
@@ -69,14 +74,15 @@ rule train:
     params:
         max_iter=config.get('max_iter'),
         random_seed=config.get('random_seed'),
-        tolerance=config.get('tolerance')
+        tolerance=config.get('tolerance'),
+        active_signatures=ACTIVE_SIGNATURES_PARAM
     output:
         TRAINED_MODEL_FMT
     shell:
         'python {TRAIN_AND_PREDICT_PY} -mf {input.mutations} -sf {input.signatures} '\
         '-od {TRAINED_MODEL_DIR}/ct{wildcards.threshold} -mn {wildcards.model} '\
-        '-sn {wildcards.sample} -mi {params.max_iter} -ct {wildcards.threshold} '\
-        '-rs {params.random_seed} -tol {params.tolerance}'
+        '{params.active_signatures} -sn {wildcards.sample} -mi {params.max_iter} '\
+        '-ct {wildcards.threshold} -rs {params.random_seed} -tol {params.tolerance}'
 
 # Perform LOOCV for each sample
 rule loocv:
@@ -86,11 +92,12 @@ rule loocv:
     params:
         max_iter=config.get('max_iter'),
         random_seed=config.get('random_seed'),
-        tolerance=config.get('tolerance')
+        tolerance=config.get('tolerance'),
+        active_signatures=ACTIVE_SIGNATURES_PARAM
     output:
         LOOCV_MODEL_FMT
     shell:
         'python {TRAIN_AND_PREDICT_PY} -mf {input.mutations} -sf {input.signatures} '\
         '-od {LOOCV_DIR}/ct{wildcards.threshold} -mn {wildcards.model} -sn {wildcards.sample} '\
-        '-mi {params.max_iter} -ct {wildcards.threshold} -rs {params.random_seed} '\
-        '-tol {params.tolerance} --cross-validation-mode'
+        '{params.active_signatures} -mi {params.max_iter} -ct {wildcards.threshold} '\
+        '-rs {params.random_seed} -tol {params.tolerance} --cross-validation-mode'

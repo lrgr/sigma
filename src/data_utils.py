@@ -8,7 +8,7 @@ import json
 import logging
 
 # Logging format
-FORMAT = '%(asctime)s %(levelname)-10s: %(message)s'
+FORMAT = '%(asctime)s SigMa %(levelname)-10s: %(message)s'
 logging.basicConfig(format=FORMAT)
 
 def get_logger(verbosity=logging.INFO):
