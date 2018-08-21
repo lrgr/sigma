@@ -3,6 +3,7 @@ channels:
   - defaults
   - bioconda
 dependencies:
+  - python=3.6
   - numpy
   - scikit-learn
   - scipy
