@@ -22,6 +22,8 @@ if not ('samples' in config):
         config['samples'] = json.load(IN).get('samples')
 
     config['samples'] = ['PD4076']
+elif type(config['samples']) != type([]):
+    config['samples'] = [config['samples']]
 
 config['random_seed'] = config.get('random_seed', 94781)
 config['max_iter'] = config.get('max_iter', 100)
@@ -79,7 +81,7 @@ rule train:
         TRAINED_MODEL_FMT
     shell:
         'python {TRAIN_AND_PREDICT_PY} -mf {input.mutations} -sf {input.signatures} '\
-        '-od {TRAINED_MODEL_DIR}/ct{wildcards.threshold} -mn {wildcards.model} '\
+        '-od {TRAINED_MODEL_DIR}/sigma{wildcards.threshold} -mn {wildcards.model} '\
         '{params.active_signatures} -sn {wildcards.sample} -mi {params.max_iter} '\
         '-ct {wildcards.threshold} -rs {params.random_seed} -tol {params.tolerance}'
 
@@ -97,10 +99,10 @@ rule sigma_loocv:
         SIGMA_LOOCV_MODEL_FMT
     shell:
         'python {TRAIN_AND_PREDICT_PY} -mf {input.mutations} -sf {input.signatures} '\
-        '-od {LOOCV_DIR}/ct{wildcards.threshold} -mn {SIGMA_NAME} -sn {wildcards.sample} '\
+        '-od {LOOCV_DIR}/sigma{wildcards.threshold} -mn {SIGMA_NAME} -sn {wildcards.sample} '\
         '{params.active_signatures} -mi {params.max_iter} -ct {wildcards.threshold} '\
         '-rs {params.random_seed} -tol {params.tolerance} --cross-validation-mode'
-        
+
 rule mmm_loocv:
     input:
         mutations=config.get('mutations_file'),
