@@ -1,5 +1,6 @@
 # SigMa
 
+[![Build Status](https://travis-ci.com/lrgr/sigma.svg?branch=master)](https://travis-ci.org/lrgr/sigma)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This repository contains the source code for SigMa (<u>Sig</u>nature <u>Ma</u>rkov model) and related experiments. SigMa is a probabilistic model the sequential dependencies among mutation signatures.
