@@ -19,5 +19,5 @@ install:
   - source activate sigma-env
 
 script:
-  - cd data && snakemake all
+  - cd data && snakemake all && cd ..
   - snakemake all --config samples=PD4076
