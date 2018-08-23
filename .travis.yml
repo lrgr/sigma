@@ -20,4 +20,4 @@ install:
 
 script:
   - cd data && snakemake all
-  - snakemake all --configuration samples=PD4076
+  - snakemake all --config samples=PD4076
