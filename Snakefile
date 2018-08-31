@@ -20,8 +20,6 @@ if not ('samples' in config):
     import json
     with open(config.get('mutations_file'), 'r') as IN:
         config['samples'] = json.load(IN).get('samples')
-
-    config['samples'] = ['PD4076']
 elif type(config['samples']) != type([]):
     config['samples'] = [config['samples']]
 
