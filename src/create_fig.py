@@ -1,8 +1,10 @@
 from os import listdir
 from os.path import isfile, join
 import numpy as np
-from src.data_utils import load_json
+from data_utils import load_json
+from constants import MODEL_NAMES, SIGMA_NAME, MMM_NAME
 import matplotlib.pyplot as plt
+import sys
 
 
 def across_all_dir(path, files):
@@ -20,16 +22,16 @@ def analyze(par_path, out_fig):
     thresholds = []
     tmp = []
     names = []
-    if 'mmm' in dirs:
-        tmp.append('mmm')
-        names.append('mmm')
+    if MMM_NAME in dirs:
+        tmp.append(MMM_NAME)
+        names.append(MMM_NAME)
     for d in dirs:
-        if 'sigma' in d:
+        if SIGMA_NAME in d:
             thresholds.append(int(d.split('a')[1]))
 
     thresholds = sorted(thresholds)
     for i in thresholds:
-        tmp.append('sigma' + str(i))
+        tmp.append(SIGMA_NAME + str(i))
         names.append(str(i // 1000) + 'K')
 
     dirs = tmp
@@ -47,10 +49,10 @@ def analyze(par_path, out_fig):
     results_mat = np.zeros((len(files_intersection), len(dirs)))
     for i, d in enumerate(dirs):
         path = join(par_path, d)
-        if 'sigma' in d:
-            prefix = 'sigma-'
+        if SIGMA_NAME in d:
+            prefix = SIGMA_NAME + '-'
         else:
-            prefix = 'mmm-'
+            prefix = MMM_NAME + '-'
 
         scores = across_all_dir(path, [prefix + f for f in files_intersection])
         results_mat[:, i] = scores
@@ -61,3 +63,18 @@ def analyze(par_path, out_fig):
 
     plt.bar(names, sum_results)
     plt.savefig(out_fig)
+
+
+def get_parser():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-ld', '--loocv_dir', type=str, required=True)
+    parser.add_argument('-of', '--output_file', type=str, required=True)
+    return parser
+
+
+def main(args):
+    analyze(args.loocv_dir, args.output_file)
+
+
+if __name__ == '__main__': main( get_parser().parse_args(sys.argv[1:]) )
