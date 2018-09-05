@@ -62,6 +62,7 @@ def analyze(par_path, out_fig):
         print('{}:   {}'.format(dirs[i], sum_results[i]))
 
     plt.bar(names, sum_results)
+    plt.ylim((sum_results.min() - 1000, sum_results.max() + 1000))
     plt.savefig(out_fig)
 
 
