@@ -8,11 +8,25 @@ import sys
 
 
 def across_all_dir(path, files):
-    scores = []
+    scores = np.zeros((len(files), 24))
     for i, f in enumerate(files):
-        result_dict = load_json(join(path, f))
-        scores.append(result_dict['results']['score'])
+        sample_dict = load_json(join(path, f))
+        for j, c in enumerate(sample_dict['chromosomesToResults'].keys()):
+            scores[i][j] = sample_dict['chromosomesToResults'][c]['score']
     return scores
+
+
+def fix_nans(mat):
+    """
+    returns the matrix with average over models if a model, sample, chromosome had nan in it.
+    :param mat: ndarray (model, sample, chromosome)
+    :return: mat ndarray (model, sample, chromosome)
+    """
+    mat = np.nan_to_num(mat)
+    idx, idy, idz = np.where(mat == 0)
+    for x, y, z in zip(idx, idy, idz):
+        mat[x, y, z] = mat[:, y, z].mean()
+    return mat
 
 
 def analyze(par_path, out_fig):
@@ -46,7 +60,7 @@ def analyze(par_path, out_fig):
 
     print('number of samples in common: {}'.format(len(files_intersection)))
 
-    results_mat = np.zeros((len(files_intersection), len(dirs)))
+    results_mat = np.zeros((len(dirs), len(files_intersection), 24))
     for i, d in enumerate(dirs):
         path = join(par_path, d)
         if SIGMA_NAME in d:
@@ -55,9 +69,10 @@ def analyze(par_path, out_fig):
             prefix = MMM_NAME + '-'
 
         scores = across_all_dir(path, [prefix + f for f in files_intersection])
-        results_mat[:, i] = scores
+        results_mat[i] = scores
 
-    sum_results = np.sum(results_mat, axis=0)
+    results_mat = fix_nans(results_mat)
+    sum_results = np.sum(results_mat, axis=(1, 2))
     for i in range(len(dirs)):
         print('{}:   {}'.format(dirs[i], sum_results[i]))
 
