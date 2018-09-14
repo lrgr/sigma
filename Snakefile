@@ -52,8 +52,11 @@ TRAINED_MODEL_FMT = '%s/%s{threshold}/{model}-{sample}.json' % (TRAINED_MODEL_DI
 MMM_LOOCV_MODEL_FMT = '%s/%s/%s-{sample}.json' % (LOOCV_DIR, MMM_NAME, MMM_NAME)
 SIGMA_LOOCV_MODEL_FMT = '%s/%s{threshold}/%s-{sample}.json' % (LOOCV_DIR, SIGMA_NAME, SIGMA_NAME)
 
+LOOCV_FIGURE = join(LOOCV_DIR, '%s-%s-loocv-comparison.pdf' % (SIGMA_NAME, MMM_NAME))
+
 # Scripts
 TRAIN_AND_PREDICT_PY = join(SRC_DIR, 'train_and_predict.py')
+CREATE_FIGURE_PY = join(SRC_DIR, 'create_fig.py')
 
 ################################################################################
 # RULES
@@ -62,9 +65,17 @@ TRAIN_AND_PREDICT_PY = join(SRC_DIR, 'train_and_predict.py')
 rule all:
     input:
         expand(TRAINED_MODEL_FMT, sample=config.get('samples'), model=MODEL_NAMES, threshold=[config.get('chosen_cloud_threshold')]),
+        LOOCV_FIGURE
+
+# Plot cross-validation figure
+rule cv_figure:
+    input:
         expand(SIGMA_LOOCV_MODEL_FMT, sample=config.get('samples'), threshold=config.get('cloud_thresholds')),
         expand(MMM_LOOCV_MODEL_FMT, sample=config.get('samples'))
-
+    output:
+        LOOCV_FIGURE
+    shell:
+        'python {CREATE_FIGURE_PY} -ld {LOOCV_DIR} -of {output}'
 # Train models for each sample
 rule train:
     input:

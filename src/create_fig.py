@@ -1,11 +1,16 @@
+#!/usr/bin/env python
+
+# Load required modules
+import matplotlib
+matplotlib.use('Agg')
+import sys, numpy as np, matplotlib.pyplot as plt, seaborn as sns
 from os import listdir
 from os.path import isfile, join
-import numpy as np
+sns.set_style('whitegrid')
+
+# Load our modules
 from data_utils import load_json
 from constants import MODEL_NAMES, SIGMA_NAME, MMM_NAME
-import matplotlib.pyplot as plt
-import sys
-
 
 def across_all_dir(path, files):
     scores = np.zeros((len(files), 24))
@@ -38,12 +43,13 @@ def analyze(par_path, out_fig):
     names = []
     if MMM_NAME in dirs:
         tmp.append(MMM_NAME)
-        names.append(MMM_NAME)
+        names.append(MMM_NAME.upper())
     for d in dirs:
         if SIGMA_NAME in d:
             thresholds.append(int(d.split('a')[1]))
 
     thresholds = sorted(thresholds)
+    print(thresholds)
     for i in thresholds:
         tmp.append(SIGMA_NAME + str(i))
         names.append(str(i // 1000) + 'K')
@@ -72,12 +78,24 @@ def analyze(par_path, out_fig):
         results_mat[i] = scores
 
     results_mat = fix_nans(results_mat)
-    sum_results = np.sum(results_mat, axis=(1, 2))
+    sum_results = np.sum(results_mat, axis=(1, 2)).tolist()
     for i in range(len(dirs)):
         print('{}:   {}'.format(dirs[i], sum_results[i]))
 
-    plt.bar(names, sum_results)
-    plt.ylim((sum_results.min() - 1000, sum_results.max() + 1000))
+    # Create the plot, highlighting the one with maximum log-likelihood
+    max_ind = np.argmax(sum_results)
+    ind = list(range(0, max_ind)) + list(range(max_ind+1, len(names)))
+    plt.bar(ind, sum_results[:max_ind] + sum_results[max_ind+1:])
+
+    plt.bar([max_ind], [sum_results[max_ind]], color=(181./255, 85./255, 85./255))
+
+    plt.xticks(range(len(names)), names)
+    plt.ylim((min(sum_results) - 1000, max(sum_results) + 1000))
+    plt.xlabel('Model')
+    plt.ylabel('Held-out log-likelihood')
+    plt.title('Comparing MMM and SigMa with various cloud thresholds')
+    
+    plt.tight_layout()
     plt.savefig(out_fig)
 
 
