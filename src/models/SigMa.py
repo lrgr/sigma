@@ -2,6 +2,7 @@ import numpy as np
 from models.MMMFrozenEmissions import MMMFrozenEmissions
 from models.HMM import HMM
 import time
+np.warnings.filterwarnings('ignore')
 
 
 class SigMa:
