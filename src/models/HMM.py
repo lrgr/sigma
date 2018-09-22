@@ -2,6 +2,7 @@ import numpy as np
 import time
 from pomegranate import HiddenMarkovModel, State, DiscreteDistribution
 from scipy.misc import logsumexp
+np.warnings.filterwarnings('ignore')
 
 
 class HMM:
