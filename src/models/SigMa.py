@@ -149,7 +149,7 @@ class SigMa:
             if len(seq) == 1:
                 current_cloud_indicator = [special_symbol]
             else:
-                current_cloud_indicator = self.hmm.hmm.predict(seq)
+                current_cloud_indicator = self.hmm.hmm.predict(seq, algorithm='viterbi')[1:]  # [1:] to avoid initial state
 
             current_viterbi = []
             for i in range(len(seq)):
