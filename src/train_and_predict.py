@@ -194,7 +194,7 @@ def main(args):
         func = get_viterbi
 
     for experiment_tuple in tqdm(experiment_tuples, total=len(sample_indices), ncols=80):
-        np.random.set_state(args.random_state)  # setting the random state before each experiment
+        np.random.seed(args.random_state)  # setting the random state before each experiment
         sample = experiment_tuple[0]
         out_file = '%s/%s-%s' % (args.output_directory, args.model_name, sample)
         dict_to_save = func(experiment_tuple, args.model_name, emissions,
