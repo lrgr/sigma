@@ -1,16 +1,12 @@
 import numpy as np
-import time
 from scipy.misc import logsumexp
 np.warnings.filterwarnings('ignore')
 
 
 class MultinomialMixtureModel:
-    def __init__(self, num_states, num_emissions, emissions=None, weights=None, random_state=1000):
+    def __init__(self, num_states, num_emissions, emissions=None, weights=None):
         self.num_states = num_states
         self.num_emissions = num_emissions
-        if random_state is None:
-            random_state = time.time()
-        np.random.seed(int(random_state))
         self.weights = np.random.dirichlet([0.5] * num_states) if weights is None else weights
         self.emissions = np.random.dirichlet([0.5] * num_emissions, size=num_states) if emissions is None else emissions
         self.weights = np.log(self.weights)

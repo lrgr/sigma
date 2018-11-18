@@ -1,17 +1,16 @@
 import numpy as np
 from models.MMMFrozenEmissions import MMMFrozenEmissions
 from models.HMM import HMM
-import time
 np.warnings.filterwarnings('ignore')
 
 
 class SigMa:
-    def __init__(self, emissions, random_state=None):
+    def __init__(self, emissions):
         self.num_states = len(emissions)
         self.num_emissions = len(emissions[0])
 
-        self.mmm = MMMFrozenEmissions(emissions, random_state)
-        self.hmm = HMMForSigma(self.mmm.get_emissions_matrix(), self.mmm.get_emissions_vector(), random_state)
+        self.mmm = MMMFrozenEmissions(emissions)
+        self.hmm = HMMForSigma(self.mmm.get_emissions_matrix(), self.mmm.get_emissions_vector())
 
     def fit(self, seqs, max_iterations=1e8, stop_threshold=1e-3):
 
@@ -174,14 +173,11 @@ class SigMa:
 
 
 class HMMForSigma(HMM):
-    def __init__(self, emissions, sky_emissions, random_state=None):
+    def __init__(self, emissions, sky_emissions):
         self.num_sigs = emissions.shape[0]
         self.weights = np.zeros(self.num_sigs)
-        super().__init__(self.num_sigs + 1, emissions.shape[1], random_state=random_state)
+        super().__init__(self.num_sigs + 1, emissions.shape[1])
 
-        if random_state is None:
-            random_state = time.time()
-        np.random.seed(int(random_state))
         # fixing parameters
         random_hmm = HMM(self.num_sigs, emissions.shape[1])
         random_b = np.random.random(2)

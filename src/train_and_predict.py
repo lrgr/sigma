@@ -17,7 +17,7 @@ from data_utils import get_split_sequences_by_threshold, to_json, get_logger
 ################################################################################
 # HELPERS
 ################################################################################
-def leave_one_out(sample_seqs_tuple, model_name, emissions, max_iterations, epsilon, random_state):
+def leave_one_out(sample_seqs_tuple, model_name, emissions, max_iterations, epsilon):
     seqs = sample_seqs_tuple[1]
     n_seq = len(seqs)
 
@@ -47,7 +47,7 @@ def leave_one_out(sample_seqs_tuple, model_name, emissions, max_iterations, epsi
             test_length += len(seq)
 
         tic = time()
-        model, num_iterations = get_trained_model(model_name, emissions, train_data, epsilon, max_iterations, random_state)
+        model, num_iterations = get_trained_model(model_name, emissions, train_data, epsilon, max_iterations)
         train_time = time() - tic
 
         score = model.log_probability(test_data)
@@ -70,7 +70,7 @@ def leave_one_out(sample_seqs_tuple, model_name, emissions, max_iterations, epsi
     return output_dict
 
 
-def get_viterbi(sample_seqs_tuple, model_name, emissions, max_iterations, epsilon, random_state):
+def get_viterbi(sample_seqs_tuple, model_name, emissions, max_iterations, epsilon):
     train_data = []
     train_length = 0
     for s in sample_seqs_tuple[1]:
@@ -78,7 +78,7 @@ def get_viterbi(sample_seqs_tuple, model_name, emissions, max_iterations, epsilo
         train_length += len(s[0])
 
     tic = time()
-    model, num_iterations = get_trained_model(model_name, emissions, train_data, epsilon, max_iterations, random_state)
+    model, num_iterations = get_trained_model(model_name, emissions, train_data, epsilon, max_iterations)
     train_time = time() - tic
 
     score = model.log_probability(train_data)
@@ -94,17 +94,17 @@ def get_viterbi(sample_seqs_tuple, model_name, emissions, max_iterations, epsilo
     return out_dict
 
 
-def get_trained_model(model_name, emissions, train_data, epsilon, max_iterations, random_state):
-    model = get_model(model_name, emissions, random_state)
+def get_trained_model(model_name, emissions, train_data, epsilon, max_iterations):
+    model = get_model(model_name, emissions)
     num_iterations = model.fit(train_data, stop_threshold=epsilon, max_iterations=max_iterations)
     return model, num_iterations
 
 
-def get_model(model_name, emissions, random_state=None):
+def get_model(model_name, emissions):
     if model_name == SIGMA_NAME:
-        return SigMa(emissions, random_state)
+        return SigMa(emissions)
     elif model_name == MMM_NAME:
-        return MMMFrozenEmissions(emissions, random_state=random_state)
+        return MMMFrozenEmissions(emissions)
     else:
         raise NotImplementedError('Model "%s" not implemented' % args.model_name)
 
@@ -191,10 +191,11 @@ def main(args):
         func = get_viterbi
 
     for experiment_tuple in tqdm(experiment_tuples, total=len(sample_indices), ncols=80):
+        np.random.set_state(args.random_state)  # setting the random state before each experiment
         sample = experiment_tuple[0]
         out_file = '%s/%s-%s' % (args.output_directory, args.model_name, sample)
         dict_to_save = func(experiment_tuple, args.model_name, emissions,
-                            args.max_iter, args.tolerance, args.random_state)
+                            args.max_iter, args.tolerance)
         to_json(out_file, dict_to_save)
         
     logger.info('- Done')

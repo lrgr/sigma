@@ -1,18 +1,14 @@
 import numpy as np
-import time
 from pomegranate import HiddenMarkovModel, State, DiscreteDistribution
 from scipy.misc import logsumexp
 np.warnings.filterwarnings('ignore')
 
 
 class HMM:
-    def __init__(self, num_states, num_emissions, laplace=0, random_state=None):
+    def __init__(self, num_states, num_emissions, laplace=0):
         self.num_states = num_states
         self.num_emissions = num_emissions
         self.laplace = laplace
-        if random_state is None:
-            random_state = time.time()
-        np.random.seed(int(random_state))
         self.transitions = np.random.sample((num_states, num_states))
         self.transitions = (self.transitions.transpose() / np.sum(self.transitions, axis=1)).transpose()
         self.emissions = np.random.dirichlet([0.5] * num_emissions, size=num_states)
