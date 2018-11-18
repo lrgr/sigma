@@ -136,7 +136,9 @@ class SigMa:
 
         return self.mmm.log_probability(mmm_seqs) + self.hmm.log_probability(hmm_seqs)
 
-    def predict(self, seqs):
+    def predict(self, seqs, algorithm='viterbi'):
+        if algorithm not in ['viterbi', 'map']:
+            raise NotImplementedError('Algorithm {} is not supported for prediction'.format(algorithm))
         special_symbol = self.num_states
         gmm_emissions = (self.mmm.get_emissions_matrix().T * self.mmm.get_weights_vector()).T
         mmm_most_probable_path = np.argmax(gmm_emissions, axis=0).tolist()
@@ -148,7 +150,10 @@ class SigMa:
             if len(seq) == 1:
                 current_cloud_indicator = [special_symbol]
             else:
-                current_cloud_indicator = self.hmm.hmm.predict(seq, algorithm='viterbi')[1:]  # [1:] to avoid initial state
+                if algorithm == 'viterbi':
+                    current_cloud_indicator = self.hmm.hmm.predict(seq, algorithm='viterbi')[1:]  # [1:] to avoid initial state
+                elif algorithm == 'map':
+                    current_cloud_indicator = self.hmm.hmm.predict(seq, algorithm='map')
 
             current_viterbi = []
             for i in range(len(seq)):
