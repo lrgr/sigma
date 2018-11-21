@@ -122,7 +122,7 @@ rule mmm_loocv:
 # General rules
 rule cv_figure:
     input:
-        rules.loocv.output
+        rules.loocv.input
     output:
         LOOCV_FIGURE
     shell:
@@ -134,6 +134,6 @@ rule train:
         
 rule all:
     input:
-        rules.train.output,
+        rules.train.input,
         LOOCV_FIGURE
 
