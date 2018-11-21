@@ -61,23 +61,8 @@ CREATE_FIGURE_PY = join(SRC_DIR, 'create_fig.py')
 ################################################################################
 # RULES
 ################################################################################
-# General rules
-rule all:
-    input:
-        expand(TRAINED_MODEL_FMT, sample=config.get('samples'), model=MODEL_NAMES, threshold=[config.get('chosen_cloud_threshold')]),
-        LOOCV_FIGURE
-
-# Plot cross-validation figure
-rule cv_figure:
-    input:
-        expand(SIGMA_LOOCV_MODEL_FMT, sample=config.get('samples'), threshold=config.get('cloud_thresholds')),
-        expand(MMM_LOOCV_MODEL_FMT, sample=config.get('samples'))
-    output:
-        LOOCV_FIGURE
-    shell:
-        'python {CREATE_FIGURE_PY} -ld {LOOCV_DIR} -of {output}'
-# Train models for each sample
-rule train:
+# Train the model
+rule train_full:
     input:
         mutations=config.get('mutations_file'),
         signatures=config.get('signatures_file')
@@ -95,7 +80,12 @@ rule train:
         '-ct {wildcards.threshold} -rs {params.random_seed} -tol {params.tolerance}'
 
 # Perform LOOCV for each sample
-rule sigma_loocv:
+rule loocv:
+    input:
+        expand(SIGMA_LOOCV_MODEL_FMT, sample=config.get('samples'), threshold=config.get('cloud_thresholds')),
+        expand(MMM_LOOCV_MODEL_FMT, sample=config.get('samples'))        
+
+rule sigma_loocv_full:
     input:
         mutations=config.get('mutations_file'),
         signatures=config.get('signatures_file')
@@ -128,3 +118,22 @@ rule mmm_loocv:
         '-od {LOOCV_DIR}/mmm -mn {MMM_NAME} -sn {wildcards.sample} '\
         '{params.active_signatures} -mi {params.max_iter} -ct 0 '\
         '-rs {params.random_seed} -tol {params.tolerance} --cross-validation-mode'
+
+# General rules
+rule cv_figure:
+    input:
+        rules.loocv.output
+    output:
+        LOOCV_FIGURE
+    shell:
+        'python {CREATE_FIGURE_PY} -ld {LOOCV_DIR} -of {output}'
+        
+rule train:
+    input:
+        expand(TRAINED_MODEL_FMT, sample=config.get('samples'), model=MODEL_NAMES, threshold=[config.get('chosen_cloud_threshold')]),
+        
+rule all:
+    input:
+        rules.train.output,
+        LOOCV_FIGURE
+
