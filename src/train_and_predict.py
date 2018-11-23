@@ -88,9 +88,9 @@ def get_viterbi(sample_seqs_tuple, model_name, emissions, max_iterations, epsilo
     if model_name == MMM_NAME:
         out_dict['viterbi'] = {'path': viterbi}
     elif model_name == SIGMA_NAME:
-        viterbi_dict = {'path': viterbi[0], 'cloud_indicator': viterbi[1]}
+        viterbi_dict = {'path': viterbi[1], 'cloud_indicator': viterbi[0]}
         map_prediction = model.predict(train_data)
-        map_dict = {'path': map_prediction[0], 'cloud_indicator': map_prediction[1]}
+        map_dict = {'path': map_prediction[1], 'cloud_indicator': map_prediction[0]}
         out_dict['viterbi'] = viterbi_dict
         out_dict['map'] = map_dict
 
