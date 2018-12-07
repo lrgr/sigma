@@ -20,7 +20,10 @@ COSMIC_SIGNATURES = join(SIGNATURES_DIR, 'cosmic-signatures.tsv')
 ICGC_R22_BRCA_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-BRCA-EU.RELEASE_22.SBS.tsv')
 ICGC_R22_BRCA_MUTATIONS_RENAMED = join(RAW_MUTATIONS_DIR, 'ICGC-BRCA-EU.RELEASE_22.SBS.renamed.tsv')
 ICGC_R22_BRCA_MUTATIONS_JSON = join(MUTATIONS_DIR, 'ICGC-BRCA-EU.RELEASE_22.SBS.renamed.sigma.json')
+ICGC_R22_BRCA_MUTATIONS_MAPPABLE_BLACKLIST_JSON = join(MUTATIONS_DIR, 'ICGC-BRCA-EU.RELEASE_22.SBS.renamed.sigma.map_blacklist.json')
 ICGC_R22_BRCA_SAMPLE_FILE = join(RAW_MUTATIONS_DIR, 'sample.r22.BRCA-EU.tsv')
+
+HG19_BLACKLIST = join(RAW_MUTATIONS_DIR, 'hg19-blacklist.csv')
 
 PROCESS_COSMIC_SIGNATURES_PY = join(SRC_DIR, 'process_cosmic_signatures.py')
 PROCESS_MUTATIONS_FOR_SIGMA_PY = join(SRC_DIR, 'process_mutations_for_sigma.py')
@@ -32,10 +35,22 @@ CONVERT_PATIENT_NAMES_PY = join(SRC_DIR, 'convert_patient_names.py')
 # General
 rule all:
     input:
-        ICGC_R22_BRCA_MUTATIONS_JSON
+        ICGC_R22_BRCA_MUTATIONS_JSON,
+        ICGC_R22_BRCA_MUTATIONS_MAPPABLE_BLACKLIST_JSON
 
 # Download processed ICGC BRCA (release 22) BRCA mutations, convert into JSON
 # format
+rule convert_mappable_mutations_to_json:
+    input:
+        mutations=ICGC_R22_BRCA_MUTATIONS_RENAMED,
+        signatures=COSMIC_SIGNATURES,
+        mappability=HG19_BLACKLIST
+    output:
+        ICGC_R22_BRCA_MUTATIONS_MAPPABLE_BLACKLIST_JSON
+    shell:
+        'python {PROCESS_MUTATIONS_FOR_SIGMA_PY} -mf {input.mutations} '\
+        '-sf {input.signatures} -o {output} -mbf {input.mappability}'
+
 rule convert_mutations_to_json:
     input:
         mutations=ICGC_R22_BRCA_MUTATIONS_RENAMED,
@@ -58,11 +73,20 @@ rule convert_patient_names:
         
 rule download_icgc_r22_brca_mutations:
     params:
-        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-BRCA-EU.RELEASE_22.SBS.tsv'
+        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/publications/Nik-Zainal2016/processed/extended/extended.ICGC-BRCA-EU_BRCA_22.SBS.tsv'
     output:
         ICGC_R22_BRCA_MUTATIONS
     shell:
         'wget -O {output} {params.url}'
+
+rule download_hg19_blacklist:
+    output:
+        HG19_BLACKLIST
+    run:
+        import requests
+        response = requests.get('https://docs.google.com/spreadsheet/ccc?key=1s_LNh4uAD3aIrr4TbOji7ehDMiFs0av0OD7prOk0jkA&output=csv')
+        with open(HG19_BLACKLIST, 'w') as OUT:
+            OUT.write('\n'.join(str(response.content).split('\\r\\n')))
 
 rule download_sample_mapping:
     params:
