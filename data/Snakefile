@@ -25,8 +25,10 @@ ICGC_R22_BRCA_SAMPLE_FILE = join(RAW_MUTATIONS_DIR, 'sample.r22.BRCA-EU.tsv')
 
 ICGC_R25_PACA_AU_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-AU_PACA_25.SBS.tsv')
 ICGC_R25_PACA_CA_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-CA_PACA_25.SBS.tsv')
-ICGC_R25_PACA_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-AU_CA_PACA_25.SBS.tsv')
-ICGC_R25_PACA_MUTATIONS_JSON = join(MUTATIONS_DIR, 'ICGC-PACA-AU_CA-RELEASE_25.SBS.sigma.json')
+ICGC_R25_PACA_AU_MUTATIONS_CLEAN = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-AU_PACA_25.SBS.clean.tsv')
+ICGC_R25_PACA_CA_MUTATIONS_CLEAN = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-CA_PACA_25.SBS.clean.tsv')
+ICGC_R25_PACA_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-AU_PACA_25.SBS.tsv')
+ICGC_R25_PACA_MUTATIONS_JSON = join(MUTATIONS_DIR, 'ICGC-PACA-AU-RELEASE_25.SBS.sigma.json')
 
 HG19_BLACKLIST = join(RAW_MUTATIONS_DIR, 'hg19-blacklist.csv')
 
@@ -122,7 +124,7 @@ rule download_cosmic_signatures:
 # Pancreatic cancer data
 rule convert_paca_mutations_to_json:
     input:
-        mutations=ICGC_R25_PACA_MUTATIONS,
+        mutations=ICGC_R25_PACA_AU_MUTATIONS_CLEAN,
         signatures=COSMIC_SIGNATURES
     output:
         ICGC_R25_PACA_MUTATIONS_JSON
@@ -132,8 +134,8 @@ rule convert_paca_mutations_to_json:
 
 rule merge_paca_datasets:
     input:
-        ICGC_R25_PACA_AU_MUTATIONS,
-        ICGC_R25_PACA_CA_MUTATIONS
+        ICGC_R25_PACA_AU_MUTATIONS_CLEAN,
+        ICGC_R25_PACA_CA_MUTATIONS_CLEAN
     output:
         ICGC_R25_PACA_MUTATIONS
     run:
@@ -143,12 +145,24 @@ rule merge_paca_datasets:
         cols = df1.columns
         df2 = pd.read_csv(input[1], sep='\t')
 
-        df1_wgs = df1.loc[df1['Sequencing Strategy'] == 'WGS']
-        df2_wgs = df2.loc[df2['Sequencing Strategy'] == 'WGS']
-
         pd.concat([df1_wgs, df2_wgs])[cols].to_csv(output[0], sep='\t', index=0)
         
+rule clean_paca_au_dataset:
+    input:
+        ICGC_R25_PACA_AU_MUTATIONS,
+        ICGC_R25_PACA_CA_MUTATIONS
+    output:
+        ICGC_R25_PACA_AU_MUTATIONS_CLEAN,
+        ICGC_R25_PACA_CA_MUTATIONS_CLEAN
+    run:
+        import pandas as pd
+        for input_file, output_file in zip(input, output):
+            df = pd.read_csv(input_file, sep='\t')
+            cols = df.columns
+            df_wgs = df.loc[df['Sequencing Strategy'] == 'WGS']
+            df_wgs.to_csv(output_file, sep='\t', index=0)
 
+        
 rule download_icgc_r25_paca_ca_mutations:
     params:
         url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-PACA-CA_PACA_25.SBS.tsv'
