@@ -156,16 +156,31 @@ rule clean_paca_au_dataset:
         ICGC_R25_PACA_CA_MUTATIONS_CLEAN
     run:
         import pandas as pd
+        from collections import Counter
         for input_file, output_file in zip(input, output):
             df = pd.read_csv(input_file, sep='\t')
             cols = df.columns
             df_wgs = df.loc[df['Sequencing Strategy'] == 'WGS']
+
+            # Restrict to the sample per patient with most mutations
+            sample_whitelist = set()
+            for p, p_df in df_wgs.groupby('Patient'):
+                sample_mut_count = Counter(p_df['Sample'])
+                sample_whitelist.add( sample_mut_count.most_common(1)[0][0] )
+                
+            df_wgs = df_wgs.loc[df['Sample'].isin(sample_whitelist)]
+            
+            # Restrict to patients with >500 mutations
+            patient_mut_count = Counter(df['Patient'])
+            patient_whitelist = set( p for p, c in patient_mut_count.items() if c >= 500 )
+            df_wgs = df_wgs.loc[df['Patient'].isin(patient_whitelist)]
+            
             df_wgs.to_csv(output_file, sep='\t', index=0)
 
         
 rule download_icgc_r25_paca_ca_mutations:
     params:
-        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-PACA-CA_PACA_25.SBS.tsv'
+        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-PACA-CA_PACA_25.WGS.SBS.tsv'
     output:
         ICGC_R25_PACA_CA_MUTATIONS
     shell:
@@ -173,7 +188,7 @@ rule download_icgc_r25_paca_ca_mutations:
 
 rule download_icgc_r25_paca_au_mutations:
     params:
-        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-PACA-AU_PACA_25.SBS.tsv'
+        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-PACA-AU_PACA_25.WGS.SBS.tsv'
     output:
         ICGC_R25_PACA_AU_MUTATIONS
     shell:
