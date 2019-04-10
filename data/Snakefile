@@ -30,6 +30,13 @@ ICGC_R25_PACA_CA_MUTATIONS_CLEAN = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-CA_PACA_25
 ICGC_R25_PACA_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-PACA-AU-RELEASE_25.SBS.tsv')
 ICGC_R25_PACA_MUTATIONS_JSON = join(MUTATIONS_DIR, 'ICGC-PACA-AU-RELEASE_25.SBS.sigma.json')
 
+ICGC_R27_MALY_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-MALY-DE.RELEASE_27.SBS.tsv')
+ICGC_R27_MALY_MUTATIONS_JSON = join(RAW_MUTATIONS_DIR, 'ICGC-MALY-DE-RELEASE_27.SBS.sigma.json')
+
+ICGC_R27_CLLE_MUTATIONS = join(RAW_MUTATIONS_DIR, 'ICGC-CLLE-ES.RELEASE_27.SBS.tsv')
+ICGC_R27_CLLE_MUTATIONS_CLEAN = join(RAW_MUTATIONS_DIR, 'ICGC-CLLE-ES.RELEASE_27.SBS.clean.tsv')
+ICGC_R27_CLLE_MUTATIONS_JSON = join(RAW_MUTATIONS_DIR, 'ICGC-CLLE-ES-RELEASE_27.SBS.sigma.json')
+
 HG19_BLACKLIST = join(RAW_MUTATIONS_DIR, 'hg19-blacklist.csv')
 
 PROCESS_COSMIC_SIGNATURES_PY = join(SRC_DIR, 'process_cosmic_signatures.py')
@@ -44,7 +51,9 @@ rule all:
     input:
         ICGC_R22_BRCA_MUTATIONS_JSON,
         ICGC_R22_BRCA_MUTATIONS_MAPPABLE_BLACKLIST_JSON,
-        ICGC_R25_PACA_MUTATIONS_JSON
+        ICGC_R25_PACA_MUTATIONS_JSON,
+        ICGC_R27_MALY_MUTATIONS_JSON,
+        ICGC_R27_CLLE_MUTATIONS_JSON
 
 # Download processed ICGC BRCA (release 22) BRCA mutations, convert into JSON
 # format
@@ -176,7 +185,6 @@ rule clean_paca_au_dataset:
             df_wgs = df_wgs.loc[df['Patient'].isin(patient_whitelist)]
             
             df_wgs.to_csv(output_file, sep='\t', index=0)
-
         
 rule download_icgc_r25_paca_ca_mutations:
     params:
@@ -194,3 +202,60 @@ rule download_icgc_r25_paca_au_mutations:
     shell:
         'wget -O {output} {params.url}'
         
+# Malignant lymphoma data
+rule convert_maly_mutations_to_json:
+    input:
+        mutations=ICGC_R27_MALY_MUTATIONS,
+        signatures=COSMIC_SIGNATURES
+    output:
+        ICGC_R27_MALY_MUTATIONS_JSON
+    shell:
+        'python {PROCESS_MUTATIONS_FOR_SIGMA_PY} -mf {input.mutations} '\
+        '-sf {input.signatures} -o {output}'
+
+rule download_icgc_r27_maly_de_data:
+    params:
+        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-MALY-DE_MALY_27.WGS.SBS.tsv'
+    output:
+        ICGC_R27_MALY_MUTATIONS
+    shell:
+        'wget -O {output} {params.url}'
+
+# Chronic lymphocytic leukemia data
+rule convert_clle_mutations_to_json:
+    input:
+        mutations=ICGC_R27_CLLE_MUTATIONS_CLEAN,
+        signatures=COSMIC_SIGNATURES
+    output:
+        ICGC_R27_CLLE_MUTATIONS_JSON
+    shell:
+        'python {PROCESS_MUTATIONS_FOR_SIGMA_PY} -mf {input.mutations} '\
+        '-sf {input.signatures} -o {output}'
+
+rule clean_clle_data:
+    input:
+        ICGC_R27_CLLE_MUTATIONS
+    output:
+        ICGC_R27_CLLE_MUTATIONS_CLEAN
+    run:
+        import pandas as pd
+        from collections import Counter
+        df = pd.read_csv(input[0], sep='\t')
+        cols = df.columns
+
+        # Restrict to the sample per patient with most mutations
+        sample_whitelist = set()
+        for p, p_df in df.groupby('Patient'):
+            sample_mut_count = Counter(p_df['Sample'])
+            sample_whitelist.add( sample_mut_count.most_common(1)[0][0] )
+           
+        df = df.loc[df['Sample'].isin(sample_whitelist)]
+        df[cols].to_csv(output[0], sep='\t')
+        
+rule download_icgc_r27_clle_es_data:
+    params:
+        url='https://obj.umiacs.umd.edu/mutation-signature-explorer/mutations/ICGC/processed/extended/extended.ICGC-CLLE-ES_CLLE_27.WGS.SBS.tsv'
+    output:
+        ICGC_R27_CLLE_MUTATIONS
+    shell:
+        'wget -O {output} {params.url}'
