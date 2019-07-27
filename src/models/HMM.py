@@ -1,6 +1,6 @@
 import numpy as np
 from pomegranate import HiddenMarkovModel, State, DiscreteDistribution
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 np.warnings.filterwarnings('ignore')
 
 
