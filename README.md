@@ -61,7 +61,7 @@ For further questions, please email [Max Leiserson](mailto:mdml@cs.umd.edu) and 
 
 ## References
 
-Xiaoqing Huang*, Itay Sason*, Damian Wojtowicz*, Yoo-Ah Kim, Mark Leiserson^, Teresa M Przytycka^, Roded Sharan^. Hidden Markov Models Lead to Higher Resolution Maps of Mutation Signature Activity in Cancer. _bioRxiv_ (2018) [doi:10.1101/392639](https://doi.org/10.1101/392639).
+Xiaoqing Huang*, Itay Sason*, Damian Wojtowicz*, Yoo-Ah Kim, Mark Leiserson^, Teresa M Przytycka^, Roded Sharan^. Hidden Markov Models Lead to Higher Resolution Maps of Mutation Signature Activity in Cancer. _Genome Medicine_ (2019) [doi: 10.1186/s13073-019-0659-1](https://doi.org/10.1186/s13073-019-0659-1).
 
 \* equal first author contribution
 ^ equal senior author contribution
